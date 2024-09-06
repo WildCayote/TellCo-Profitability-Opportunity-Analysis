@@ -1,4 +1,4 @@
-import psycopg2
+import pandas as pd
 
 class DB_Client:
     """
@@ -31,7 +31,6 @@ class DB_Client:
         self.password = password
         self.port = port
         self.database_name = database_name
-
         self.connection = self.__establish_connection()
 
     def __establish_connection(self):
@@ -50,7 +49,6 @@ class DB_Client:
             Exception: If there is an error in establishing the connection.
         """
         try:
-            # Establish a connection to the database using psycopg2
             connection = psycopg2.connect(
                 host=self.host,
                 port=self.port,
@@ -62,3 +60,43 @@ class DB_Client:
         except Exception as e:
             print(f"Failed to establish connection: {e}")
             return None
+
+    def execute_query(self, query: str):
+        """
+        Executes a SQL query on the connected PostgreSQL database.
+
+        This method takes a SQL query as input, executes it, and returns the result as a pandas DataFrame.
+
+        Args:
+            query (str): The SQL query to be executed.
+
+        Returns:
+            pandas.DataFrame: A DataFrame containing the query result if successful.
+            None: Returns `None` if the query execution fails.
+        
+        Raises:
+            Exception: If there is an error while executing the query.
+        """
+        try:
+            response = pd.read_sql_query(sql=query, con=self.connection)
+            return response
+        except Exception as e:
+            print(f"Failed to execute query: {e}")
+            return None
+
+    def dump_data(self, table: str = 'xdr_data'):
+        """
+        Retrieves all data from a specified table in the PostgreSQL database.
+
+        This method generates a SQL `SELECT * FROM {table}` query and fetches the data from the given
+        table, using the `execute_query` method.
+
+        Args:
+            table (str): The name of the table from which data will be selected. Defaults to 'xdr_data'.
+
+        Returns:
+            pandas.DataFrame: A DataFrame containing all the rows from the specified table if successful.
+            None: Returns `None` if the query execution fails.
+        """
+        query = f"SELECT * FROM {table}"
+        return self.execute_query(query=query)
