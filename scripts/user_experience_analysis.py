@@ -10,10 +10,6 @@ from sklearn.preprocessing import Normalizer
 from database_client import DB_Client
 from data_cleaner import DataCleaner
 
-def print_key_value(data: pd.DataFrame):
-    '''
-    A function that will print 
-    '''
 
 def aggregate_experience_information(cleaner: DataCleaner, columns_of_interest: List[str], mode_columns: List[str], mean_columns: List[str]):
     '''
@@ -110,9 +106,42 @@ def compute_top_experience_metrics(user_experience_cleaned: pd.DataFrame):
 
     return result
 
-def compute_handset_average_metrics():
-    ''''''
+def compute_handset_average_metrics(user_experience_cleaned: pd.DataFrame):
+    '''
+    A function that computes and returns TCP Retransmissions and Average Throughput per handset 
 
+    Args:
+        user_experience_cleaned (pd.DataFrame): a dataframe of cleaned user experience information
+    
+    Returns:
+        dict: a dictionary of arrays which contain 2 dataframes each corresponding to top 20 and bottom 20 for the respective average
+    '''
+
+    # group the data by handset type and find the mean for the features
+    handset_grouping = user_experience.groupby(by="handset_type").agg({
+        "avg_rtt": "mean",
+        "avg_tcp_rt": "mean"
+    })
+
+    # sort the grouped data along the average RTT column
+    sorted_rtt = handset_grouping.sort_values(by='avg_rtt', ascending=False)
+
+    # sort the grouped data alond the average TCP Retransmissions column
+    tcp_sorted = handset_grouping.sort_values(by='avg_tcp_rt', ascending=False)
+
+    # result 
+    result = {
+        "TCP": [
+            tcp_sorted.head(20)['avg_tcp_rt'],
+            tcp_sorted.tail(20)['avg_tcp_rt']
+        ],
+        "RTT": [
+            sorted_rtt.head(20)['avg_tcp_rt'],
+            sorted_rtt.tail(20)['avg_tcp_rt']
+        ]
+    }
+
+    return result
 
 def cluster_users():
     ''''''
@@ -156,14 +185,17 @@ if __name__ == '__main__':
 
     '''Task 3.1'''
     user_experience = aggregate_experience_information(cleaner=cleaner, columns_of_interest=columns_of_interest, mode_columns=mode_columns, mean_columns=mean_columns)
+    print("########## Aggregated User Experience Information ##########")
     print(user_experience)
 
     '''Task 3.2'''
     top_ten_metrics = compute_top_experience_metrics(user_experience_cleaned=user_experience)
+    print("########## Top experience metrics ##########")
     print(top_ten_metrics)
 
-
     '''Task 3.3'''
-
+    handset_metrics = compute_handset_average_metrics(user_experience_cleaned=user_experience)
+    print("########## Top 20 metrics per handset type ##########")
+    print(handset_metrics)
 
     '''Task 3.4'''
