@@ -10,7 +10,10 @@ from sklearn.preprocessing import Normalizer
 from database_client import DB_Client
 from data_cleaner import DataCleaner
 
-
+def print_key_value(data: pd.DataFrame):
+    '''
+    A function that will print 
+    '''
 
 def aggregate_experience_information(cleaner: DataCleaner, columns_of_interest: List[str], mode_columns: List[str], mean_columns: List[str]):
     '''
@@ -66,9 +69,46 @@ def aggregate_experience_information(cleaner: DataCleaner, columns_of_interest: 
 
     return avg_stats
 
-def compute_top_experience_metrics():
-    ''''''
+def compute_top_experience_metrics(user_experience_cleaned: pd.DataFrame):
+    '''
+    A function that computes the 10 top, bottom and most frequent values in a cleaned and aggregated user experience data.
 
+    Args:
+        user_experience_cleaned (pd.DataFrame): a dataframe of cleaned user experience information
+    
+    Returns:
+        dict: a dictionary of arrays which contain 3 dataframes each corresponding to top 10, bottom 10 and most frequent 10 for the respective column
+    '''
+
+    # sort the data using average tcp 
+    tcp_sorted = user_experience_cleaned.sort_values(by="avg_tcp_rt", ascending=False)
+
+    # sort the data using average tcp 
+    rtt_sorted = user_experience_cleaned.sort_values(by="avg_rtt", ascending=False)
+
+    # sort the data using average tcp 
+    thoughput_sorted = user_experience_cleaned.sort_values(by="avg_throughput", ascending=False)
+
+    # compile the result
+    result = {
+        "TCP_RT": [
+            tcp_sorted.head(10)['avg_tcp_rt'],
+            tcp_sorted.tail(10)['avg_tcp_rt'],
+            user_experience_cleaned["avg_rtt"].value_counts().head(10)   
+        ],
+        "RTT": [
+           rtt_sorted.head(10)['avg_rtt'],
+           rtt_sorted.tail(10)['avg_rtt'],
+           user_experience_cleaned["avg_rtt"].value_counts().head(10)    
+        ],
+        "Throughput": [
+          thoughput_sorted.head(10)['avg_throughput'],
+          thoughput_sorted.tail(10)['avg_throughput'],
+          user_experience_cleaned["avg_throughput"].value_counts().head(10)     
+        ]
+    }
+
+    return result
 
 def compute_handset_average_metrics():
     ''''''
@@ -89,11 +129,11 @@ if __name__ == '__main__':
 
     # initialize the DB_Client
     db_client = DB_Client(
-    host=host,
-    user_name=user_name,
-    password=passowrd,
-    port=port,
-    database_name=database
+        host=host,
+        user_name=user_name,
+        password=passowrd,
+        port=port,
+        database_name=database
     )
     print("########## Databace Client Initialized ##########")
 
@@ -115,11 +155,13 @@ if __name__ == '__main__':
     mean_columns = [col for col in columns_of_interest if col not in mode_columns]
 
     '''Task 3.1'''
-    result = aggregate_experience_information(cleaner=cleaner, columns_of_interest=columns_of_interest, mode_columns=mode_columns, mean_columns=mean_columns)
-    print(result)
+    user_experience = aggregate_experience_information(cleaner=cleaner, columns_of_interest=columns_of_interest, mode_columns=mode_columns, mean_columns=mean_columns)
+    print(user_experience)
 
     '''Task 3.2'''
-    
+    top_ten_metrics = compute_top_experience_metrics(user_experience_cleaned=user_experience)
+    print(top_ten_metrics)
+
 
     '''Task 3.3'''
 
