@@ -102,3 +102,34 @@ class DataCleaner:
                     print(f"Couldn't fill missing values with constants due to: {e}")
             else:
                 print("Please select a method ('mode' or 'mean') or provide constant values to fill missing data!")
+
+    def drop_na(self, drop_column: bool = False):
+        """
+        Drops rows or columns with missing values (NaN) from the DataFrame.
+    
+        Parameters
+        ----------
+        drop_column : bool, optional
+            If True, columns with any missing values will be dropped (default is False, which drops rows).
+    
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame with rows or columns containing NaN values dropped, depending on the value of drop_column.
+    
+        Raises
+        ------
+        Exception
+            If the drop operation fails, an exception is caught and an error message is printed.
+        """
+        try:
+            if drop_column:
+                # Drop columns that contain any missing values
+                result = self.data.dropna(axis=1)
+            else:
+                # Drop rows that contain any missing values
+                result = self.data.dropna()
+            return result
+        except Exception as e:
+            print(f"Couldn't drop columns because of: {e}")
+
