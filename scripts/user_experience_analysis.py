@@ -118,7 +118,7 @@ def compute_handset_average_metrics(user_experience_cleaned: pd.DataFrame):
     '''
 
     # group the data by handset type and find the mean for the features
-    handset_grouping = user_experience.groupby(by="handset_type").agg({
+    handset_grouping = user_experience_cleaned.groupby(by="handset_type").agg({
         "avg_rtt": "mean",
         "avg_tcp_rt": "mean"
     })
@@ -143,10 +143,52 @@ def compute_handset_average_metrics(user_experience_cleaned: pd.DataFrame):
 
     return result
 
-def cluster_users():
-    ''''''
+def cluster_users(user_experience_cleaned: pd.DataFrame):
+    '''
+    A function that computes and returns TCP Retransmissions and Average Throughput per handset 
 
+    Args:
+        user_experience_cleaned (pd.DataFrame): a dataframe of cleaned user experience information
+    
+    Returns:
+        list: a list of 3 dataframes each corresponding cluster one, cluster two and cluster three respectively
+    '''
 
+    # drop the categorical column
+    temp = user_experience_cleaned.drop(columns=['handset_type'])
+
+    # normalize the data
+    user_normalizer = Normalizer().fit(X=temp)
+    normalized_data = user_normalizer.transform(X=temp)
+    normalized_data = pd.DataFrame(columns=temp.columns, index=temp.index, data=normalized_data)
+
+    # initialze clustering algorithm
+    clusterer = KMeans(n_clusters=3, init='k-means++', n_init=20, random_state=7)
+
+    # cluster the users based on user experience metrics
+    experience_clusters = clusterer.fit(normalized_data)
+
+    # find the lables(clusster marks) for the data points
+    cluster_labels = experience_clusters.labels_
+
+    # create a new column for holding a users cluster
+    user_experience_cleaned['cluster'] = cluster_labels
+
+    # map the clusters for every data
+    cluster_one = user_experience_cleaned[user_experience_cleaned['cluster'] == 0]
+    cluster_two = user_experience_cleaned[user_experience_cleaned['cluster'] == 1]
+    cluster_three = user_experience_cleaned[user_experience_cleaned['cluster'] == 2]
+
+    # drop the cluster column
+    cluster_one = cluster_one.drop(columns=['cluster'])
+    cluster_two = cluster_two.drop(columns=['cluster'])
+    cluster_three = cluster_three.drop(columns=['cluster'])
+
+    return {
+        "cluster_1": cluster_one,
+        "cluster_2": cluster_two,
+        "cluster_3": cluster_three 
+    }
 
 if __name__ == '__main__':
     # obtain values form environment variables
@@ -199,3 +241,6 @@ if __name__ == '__main__':
     print(handset_metrics)
 
     '''Task 3.4'''
+    experience_cluster = cluster_users(user_experience_cleaned=user_experience)
+    print("########## Three clusters of users based on experience with the service ##########")
+    print(experience_cluster)
