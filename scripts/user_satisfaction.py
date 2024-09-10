@@ -4,13 +4,6 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import Normalizer
 
 class UserStatisfactionCalculator:
-
-    # columns used/aggregated to track the user experience
-    columns_of_experience = ["Avg RTT DL (ms)", "Avg RTT UL (ms)", "TCP DL Retrans. Vol (Bytes)", "TCP UL Retrans. Vol (Bytes)", "Handset Type", "Avg Bearer TP DL (kbps)", "Avg Bearer TP UL (kbps)"]
-    
-    # columns used/aggregated to track the user engagement
-    columns_of_engagement = ["Start", "Start ms", "End", "End ms", "Dur. (ms)", "Dur. (ms).1"]
-
     def __init__(self, data: pd.DataFrame):
         self.data = data
         self.engagement_clusters_centers = None
@@ -128,7 +121,7 @@ class UserStatisfactionCalculator:
 
         return experience_agg
     
-    def obtain_experience_cluster(self):
+    def get_experience_cluster(self):
         # obtain the experience metrics for every user
         experience_agg = self.aggregate_experience_metrics()
 
@@ -149,7 +142,7 @@ class UserStatisfactionCalculator:
 
         return self.experience_clusters_centers
     
-    def obtain_engagement_cluster(self):
+    def get_engagement_cluster(self):
         # obtain the engagement metrics for every user
         engagement_agg = self.aggregate_engagement_metrics()
 
@@ -172,5 +165,5 @@ class UserStatisfactionCalculator:
 
         return self.engagement_clusters_centers
     
-    def obtain_satifisfaction_score(self):
-        ...
+    def get_satifisfaction_score(self, experience_score: pd.Series, engagemet_score: pd.Series):
+        return (experience_score + engagemet_score) / 2
