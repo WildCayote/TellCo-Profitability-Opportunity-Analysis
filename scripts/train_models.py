@@ -15,6 +15,20 @@ from user_satisfaction import UserStatisfactionCalculator
 
 
 def prep_data(data: pd.DataFrame):
+    """
+    Prepares the input data by cleaning missing values and dropping unnecessary records.
+
+    This function initializes a `DataCleaner` object to fill missing values in both categorical and numeric 
+    columns of interest. It uses the mode for categorical columns and the mean for numeric columns. After 
+    handling missing values, the function drops any remaining rows with missing data and returns the cleaned DataFrame.
+
+    Args:
+        data (pd.DataFrame): The input DataFrame that requires data cleaning.
+
+    Returns:
+        pd.DataFrame: The cleaned DataFrame with missing values filled and unnecessary rows dropped.
+    """
+
     # initailize the DataCleaner
     cleaner = DataCleaner(data=data)
     print("########## Databace Cleaner Initialized ##########")
@@ -43,6 +57,23 @@ def prep_data(data: pd.DataFrame):
     return data
 
 def transform_data(data: pd.DataFrame):
+    """
+    Transforms the input data by calculating engagement, experience, and satisfaction scores, and returns 
+    the feature set and target variable for model training.
+
+    This function uses the `UserStatisfactionCalculator` to calculate clusters and scores for engagement 
+    and experience. It also computes the satisfaction score for each user. The transformed data is then 
+    filtered to include only the necessary columns, and split into feature variables (X) and target variables (y).
+
+    Args:
+        data (pd.DataFrame): The input DataFrame containing the user data.
+
+    Returns:
+        tuple: A tuple containing:
+            - X (pd.DataFrame): The feature set (engagement and experience scores).
+            - y (pd.DataFrame): The target variable (satisfaction score).
+    """
+
     # Assign satisfcation scores
     satisfaction_calc = UserStatisfactionCalculator(data=data)
 
@@ -71,6 +102,20 @@ def transform_data(data: pd.DataFrame):
     return (X, y)
 
 def initialize_mlflow(uri: str, experiment_name: str):
+    """
+    Initializes MLflow by setting the tracking URI and retrieving or creating an experiment.
+
+    This function sets the MLflow tracking URI, either creates a new experiment with the provided name,
+    or retrieves the existing experiment if it already exists. The function returns the experiment ID.
+
+    Args:
+        uri (str): The tracking URI for MLflow (e.g., the location to log runs and artifacts).
+        experiment_name (str): The name of the experiment to create or retrieve.
+
+    Returns:
+        str: The ID of the experiment.
+    """
+
     # Initialize MLflow
     mlflow.set_tracking_uri("mlruns")  # Set up local directory for logging (In this case a directory called test in the same folder as the script)
     try:
@@ -82,6 +127,22 @@ def initialize_mlflow(uri: str, experiment_name: str):
     return experiment_id
 
 def train_and_log_model(model, model_name, experiment_id):
+    """
+    Trains a given machine learning model, logs its performance metrics and parameters to an MLflow experiment,
+    and saves the trained model.
+
+    This function starts an MLflow run within the specified experiment, trains the provided model on the training data,
+    evaluates it on the test data by calculating the mean squared error (MSE), and logs both the model and the metrics.
+
+    Args:
+        model (object): The machine learning model to be trained (e.g., sklearn model).
+        model_name (str): The name of the model, used as the run name in MLflow and for logging.
+        experiment_id (str or int): The ID of the MLflow experiment where the run should be logged.
+
+    Returns:
+        float: The mean squared error (MSE) of the model on the test data.
+    """
+
     with mlflow.start_run(run_name=model_name, experiment_id=experiment_id):
         # Train the model
         model.fit(X_train, y_train)
@@ -99,36 +160,47 @@ def train_and_log_model(model, model_name, experiment_id):
         return mse
 
 def log_best_model(experiment_name: str, tracking_uri: str):
-        # find the best model
-        run_name = 'Neural_Net_Training'
-        runs = mlflow.search_runs(experiment_names=[experiment_name] , filter_string=f'''attributes.status = "FINISHED"''' , order_by=["metrics.mse DESC"])        
-        best_run = runs.head(n=1)
+    """
+    Logs the best model from an MLflow experiment based on the lowest mean squared error (mse) metric.
+    
+    This function searches for completed runs in the specified experiment, ranks them by their 
+    mean squared error (mse), and identifies the best model. It retrieves the best model's 
+    artifact URI, logs its associated metrics, and returns the model's path and metrics as a dataframe.
 
-        # get the artifacts uri
-        artifact_uri = best_run["artifact_uri"][0]
+    Args:
+        experiment_name (str): The name of the MLflow experiment to search for the best model.
+        tracking_uri (str): The tracking URI of the MLflow server where the experiment runs are logged.
 
-        # get the metrics
-        for col in best_run.columns:
-                if 'metrics' in col:
-                        name = col.split('.')[1]
-                        value = best_run[col][0]
-                        print(f"{name} = {value}")       
-        
-        model_type = best_run["params.model_name"][0]
-
-        metrics = pd.DataFrame(data={
-                "name" : [name],
-                "value": [value],
-                "model_type": [model_type]
-        })
-
-        # make the path relative
-        path = ''.join([tracking_uri, artifact_uri.split(tracking_uri)[1]]) + f"/{model_type}"
-
-        return {
-            "metrics" : metrics,
-            "path": path  
-        }
+    Returns:
+        dict: A dictionary containing the following:
+            - "metrics" (pandas.DataFrame): A DataFrame containing the metrics (mse) and model type.
+            - "path" (str): The relative path to the best model's artifacts.
+    """
+    # find the best model
+    run_name = 'Neural_Net_Training'
+    runs = mlflow.search_runs(experiment_names=[experiment_name] , filter_string=f'''attributes.status = "FINISHED"''' , order_by=["metrics.mse DESC"])        
+    best_run = runs.head(n=1)
+    # get the artifacts uri
+    artifact_uri = best_run["artifact_uri"][0]
+    # get the metrics
+    for col in best_run.columns:
+            if 'metrics' in col:
+                    name = col.split('.')[1]
+                    value = best_run[col][0]
+                    print(f"{name} = {value}")       
+    
+    model_type = best_run["params.model_name"][0]
+    metrics = pd.DataFrame(data={
+            "name" : [name],
+            "value": [value],
+            "model_type": [model_type]
+    })
+    # make the path relative
+    path = ''.join([tracking_uri, artifact_uri.split(tracking_uri)[1]]) + f"/{model_type}"
+    return {
+        "metrics" : metrics,
+        "path": path  
+    }
 
 def save_model(path: str, metrics: pd.DataFrame):
     """
