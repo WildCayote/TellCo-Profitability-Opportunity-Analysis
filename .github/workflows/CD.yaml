@@ -39,6 +39,22 @@ jobs:
         run: |
           dvc remote modify myremote gdrive_service_account_json_file_path /home/runner/.config/dvc/gdrive-credentials.json
 
+      - name: pull data/models from remote dvc store
+        run: |
+          #!/bin/bash
+          retries=4
+          attempts=0
+
+          while [ $attempts -lt $retries ]; do
+            dvc pull -v
+            
+            attempts=$((attempts+1))
+          done
+
+      - name: Copy the model to the app folder
+        run: |
+          python scripts/create_model_package.py
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
