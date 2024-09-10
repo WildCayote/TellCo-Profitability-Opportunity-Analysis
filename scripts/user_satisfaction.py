@@ -109,6 +109,8 @@ class UserStatisfactionCalculator:
         # add it to the respective rows
         engagement_agg['engagement_score'] = result
 
+        return engagement_agg
+
     def claculate_experience_score(self):
         # the worst experience center
         worst_center = self.experience_clusters_centers[0]
