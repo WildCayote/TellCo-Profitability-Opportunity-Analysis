@@ -7,3 +7,6 @@ seaborn
 psycopg2
 scipy
 scikit-learn
+mlflow
+fastapi
+uvicorn

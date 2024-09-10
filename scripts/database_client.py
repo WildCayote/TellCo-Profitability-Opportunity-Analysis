@@ -33,6 +33,7 @@ class DB_Client:
         self.port = port
         self.database_name = database_name
         self.connection = self.__establish_connection()
+        self.cursor = self.connection.cursor()
 
     def __establish_connection(self):
         """
@@ -79,8 +80,13 @@ class DB_Client:
             Exception: If there is an error while executing the query.
         """
         try:
-            response = pd.read_sql_query(sql=query, con=self.connection)
-            return response
+            if 'SELECT' in query:
+                response = pd.read_sql_query(sql=query, con=self.connection)
+                return response
+            else:
+                self.cursor.execute(query=query)
+                self.connection.commit()
+                return None
         except Exception as e:
             print(f"Failed to execute query: {e}")
             return None
@@ -101,3 +107,49 @@ class DB_Client:
         """
         query = f"SELECT * FROM {table}"
         return self.execute_query(query=query)
+
+    def insert_data(self, data: pd.DataFrame, table: str = 'xdr_data'):
+        """
+        Inserts data into a given table in the PostgreSQL database. The table schema must be created before executing this function.
+
+        Args:
+            data (pd.DataFrame): The data we want to push to the table, the key of the dataframe is considered as the primary key for the database
+            table (str)L The name of the table we want to push the data to
+
+        Returns:
+            int: signifying the success
+        """
+
+        try:
+            # Convert DataFrame into a list of tuples (needed for psycopg2)
+            rows = [tuple(x) for x in data.to_numpy()]
+
+            # Get column names
+            columns = ', '.join([f'"{col}"' for col in [data.index.name, *data.columns]])
+
+            # Gather all row values
+            values_list = []
+            for index, row in data.iterrows():
+                values = [str(index)]
+                for value in row:
+                    if pd.isna(value):
+                        values.append('NULL')
+                    else:
+                        # Escape single quotes by replacing them with double single quotes for SQL
+                        escaped_value = str(value).replace("'", "''")
+                        values.append(f"{escaped_value}")
+                values_list.append(f"({', '.join(values)})")
+
+            # values concatinated
+            concatenated_values = ",\n".join(values_list) + ";\n"
+
+            # Create the final SQL query string
+            insert_query = f"INSERT INTO {table} ({columns}) VALUES {concatenated_values}"
+            
+            # execute the query
+            result = self.execute_query(query=insert_query)
+            
+            return result
+        
+        except Exception as e:
+            print(f"Couldn't push data becuase of: {e}")
