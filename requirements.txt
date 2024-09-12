@@ -11,3 +11,4 @@ mlflow
 fastapi
 uvicorn
 streamlit
+plotly
