@@ -10,4 +10,4 @@ scikit-learn
 mlflow
 fastapi
 uvicorn
-appwrite
+streamlit
