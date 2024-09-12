@@ -37,8 +37,7 @@ def init_connection(host: str, port: str, user_name: str, password: str, databas
         print(f"Failed to establish connection: {e}")
         return None
 
-@st.cache_data(ttl=600)
-def run_query(query: str, connection: connection):
+def run_query(query: str, connection: psycopg2.extensions.connection):
     """
     Executes a SQL query against the provided database connection.
 
